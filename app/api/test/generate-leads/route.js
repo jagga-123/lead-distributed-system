@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { allocateLead } from '@/lib/allocation';
@@ -6,6 +5,7 @@ import Lead from '@/models/Lead';
 import LeadAssignment from '@/models/LeadAssignment';
 import Provider from '@/models/Provider';
 import { ensureBootstrapData } from '@/lib/bootstrap';
+import { runTransactionWithRetry } from '@/lib/transaction';
 
 function isTransactionUnsupported(error) {
   const message = error?.message || '';
@@ -47,26 +47,14 @@ async function createTestLead(index, services) {
     return newLead;
   };
 
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
-    const createdLead = await run(session);
-    await session.commitTransaction();
-    return createdLead;
+    return await runTransactionWithRetry((session) => run(session));
   } catch (error) {
-    try {
-      await session.abortTransaction();
-    } catch {
-      // Ignore abort failures; the original error is more important.
-    }
-
     if (isTransactionUnsupported(error)) {
       return run(null);
     }
 
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 

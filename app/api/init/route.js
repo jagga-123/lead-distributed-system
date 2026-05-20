@@ -5,11 +5,11 @@ import { ensureBootstrapData } from '@/lib/bootstrap';
 export async function POST() {
   try {
     await dbConnect();
-    const { providersCount, servicesCount } = await ensureBootstrapData();
+    const { providersCount, servicesCount, seededNow } = await ensureBootstrapData();
 
     return NextResponse.json({
       success: true,
-      message: providersCount > 0 ? 'Database already seeded' : 'Database seeded successfully',
+      message: seededNow ? 'Database seeded successfully' : 'Database already seeded',
       providersCount,
       servicesConfigured: servicesCount
     }, { status: 200 });

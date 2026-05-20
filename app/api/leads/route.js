@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import Lead from '@/models/Lead';
 import LeadAssignment from '@/models/LeadAssignment';
 import { allocateLead } from '@/lib/allocation';
 import Provider from '@/models/Provider';
 import { ensureBootstrapData } from '@/lib/bootstrap';
+import { runTransactionWithRetry } from '@/lib/transaction';
 
 function isTransactionUnsupported(error) {
   const message = error?.message || '';
@@ -18,41 +18,26 @@ function isTransactionUnsupported(error) {
   ].some((fragment) => message.includes(fragment));
 }
 
-async function processLeadCreation(body, useTransaction) {
-  const session = useTransaction ? await mongoose.startSession() : null;
-  if (session) session.startTransaction();
+async function processLeadCreation(body, session = null) {
+  const { name, phoneNumber, city, serviceType, description } = body;
+  const sessionOptions = session ? { session } : {};
 
-  try {
-    const { name, phoneNumber, city, serviceType, description } = body;
+  // 1. Create Lead
+  const newLead = new Lead({ name, phoneNumber, city, serviceType, description });
+  await newLead.save(sessionOptions);
 
-    // 1. Create Lead
-    const newLead = new Lead({ name, phoneNumber, city, serviceType, description });
-    await newLead.save(session ? { session } : {});
+  // 2. Allocate Providers
+  const assignedProviders = await allocateLead(serviceType, session);
 
-    // 2. Allocate Providers
-    const assignedProviders = await allocateLead(serviceType, session);
+  // 3. Create Assignments
+  const assignments = assignedProviders.map((provider) => ({
+    leadId: newLead._id,
+    providerId: provider.providerId,
+    serviceType,
+  }));
+  await LeadAssignment.insertMany(assignments, sessionOptions);
 
-    // 3. Create Assignments
-    const assignments = assignedProviders.map(p => ({
-      leadId: newLead._id,
-      providerId: p.providerId,
-      serviceType: serviceType
-    }));
-    await LeadAssignment.insertMany(assignments, session ? { session } : {});
-
-    if (session) {
-      await session.commitTransaction();
-      session.endSession();
-    }
-
-    return { success: true, lead: newLead, assignedProviders };
-  } catch (error) {
-    if (session) {
-      await session.abortTransaction();
-      session.endSession();
-    }
-    throw error;
-  }
+  return { success: true, lead: newLead, assignedProviders };
 }
 
 export async function POST(request) {
@@ -66,13 +51,12 @@ export async function POST(request) {
     
     let result;
     try {
-      // Attempt with transaction
-      result = await processLeadCreation(body, true);
+      result = await runTransactionWithRetry((session) => processLeadCreation(body, session));
     } catch (txError) {
       // If standalone mongodb, transactions are not supported. Fallback to non-transactional.
       if (isTransactionUnsupported(txError)) {
         console.warn('MongoDB does not support transactions (likely standalone). Retrying without transaction...');
-        result = await processLeadCreation(body, false);
+        result = await processLeadCreation(body, null);
       } else {
         throw txError; // Rethrow other errors like duplicate key, quota reached, etc.
       }
