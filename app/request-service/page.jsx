@@ -29,10 +29,10 @@ export default function RequestService() {
         setMessage({ type: "success", text: "Lead submitted successfully! Assigned to: " + data.assignedProviders.map(p => p.name).join(", ") });
         setFormData({ name: "", phoneNumber: "", city: "", serviceType: "Service 1", description: "" });
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to submit lead" });
+        setMessage({ type: "error", text: data.error || `Failed to submit lead (${res.status})` });
       }
     } catch (err) {
-      setMessage({ type: "error", text: "Network error occurred." });
+      setMessage({ type: "error", text: err?.message || "Network error occurred." });
     }
     setLoading(false);
   };

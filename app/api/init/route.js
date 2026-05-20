@@ -29,9 +29,8 @@ async function ensureServices() {
 }
 
 export async function POST() {
-  await dbConnect();
-
   try {
+    await dbConnect();
     const existingProviders = await Provider.countDocuments();
 
     if (existingProviders > 0) {

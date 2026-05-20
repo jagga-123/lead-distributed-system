@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/clean-next.mjs",
     "dev": "node server.js",
+    "prebuild": "node scripts/clean-next.mjs",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint"

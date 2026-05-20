@@ -54,9 +54,8 @@ async function processLeadCreation(body, useTransaction) {
 }
 
 export async function POST(request) {
-  await dbConnect();
-  
   try {
+    await dbConnect();
     const body = await request.json();
     
     let result;

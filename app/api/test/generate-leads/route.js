@@ -69,9 +69,8 @@ async function createTestLead(index, services) {
 }
 
 export async function POST() {
-  await dbConnect();
-
   try {
+    await dbConnect();
     const services = ['Service 1', 'Service 2', 'Service 3'];
     const results = [];
 
@@ -110,6 +109,6 @@ export async function POST() {
     }, { status: 200 });
   } catch (error) {
     console.error('Generate leads error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to generate leads' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Failed to generate leads' }, { status: 500 });
   }
 }

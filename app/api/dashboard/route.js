@@ -5,12 +5,12 @@ import LeadAssignment from '@/models/LeadAssignment';
 import Lead from '@/models/Lead'; // Need to import Lead for populate
 
 export async function GET() {
-  await dbConnect();
-  
-  // ensure Lead is registered
-  Lead.schema;
-
   try {
+    await dbConnect();
+
+    // ensure Lead is registered
+    Lead.schema;
+
     const providers = await Provider.find({}).sort({ providerId: 1 }).lean();
     
     // For each provider, fetch their assignments
@@ -29,6 +29,6 @@ export async function GET() {
     return NextResponse.json({ success: true, data: providerData });
   } catch (error) {
     console.error('Dashboard data error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch dashboard data' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Failed to fetch dashboard data' }, { status: 500 });
   }
 }

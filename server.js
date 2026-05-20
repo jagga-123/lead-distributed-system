@@ -1,13 +1,20 @@
 const { createServer } = require('http');
 const { parse } = require('url');
+const { rmSync } = require('fs');
+const { existsSync } = require('fs');
 const next = require('next');
 const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
 const port = Number(process.env.PORT || 3000);
+
+if (dev && existsSync('.next')) {
+  rmSync('.next', { recursive: true, force: true });
+}
+
 // when using middleware `hostname` and `port` must be provided below
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname, port, dir: process.cwd() });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {

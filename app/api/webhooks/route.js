@@ -4,9 +4,8 @@ import WebhookLog from '@/models/WebhookLog';
 import Provider from '@/models/Provider';
 
 export async function POST(request) {
-  await dbConnect();
-
   try {
+    await dbConnect();
     const body = await request.json();
     const { eventId, eventType, payload } = body;
 
@@ -47,6 +46,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, message: 'Webhook processed successfully' }, { status: 200 });
   } catch (error) {
     console.error('Webhook error:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
