@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import Lead from '@/models/Lead';
 import LeadAssignment from '@/models/LeadAssignment';
 import { allocateLead } from '@/lib/allocation';
+import Provider from '@/models/Provider';
+import { ensureBootstrapData } from '@/lib/bootstrap';
 
 function isTransactionUnsupported(error) {
   const message = error?.message || '';
@@ -56,6 +58,10 @@ async function processLeadCreation(body, useTransaction) {
 export async function POST(request) {
   try {
     await dbConnect();
+    const providerCount = await Provider.countDocuments();
+    if (providerCount === 0) {
+      await ensureBootstrapData();
+    }
     const body = await request.json();
     
     let result;

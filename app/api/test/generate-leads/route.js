@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import { allocateLead } from '@/lib/allocation';
 import Lead from '@/models/Lead';
 import LeadAssignment from '@/models/LeadAssignment';
+import Provider from '@/models/Provider';
+import { ensureBootstrapData } from '@/lib/bootstrap';
 
 function isTransactionUnsupported(error) {
   const message = error?.message || '';
@@ -71,6 +73,10 @@ async function createTestLead(index, services) {
 export async function POST() {
   try {
     await dbConnect();
+    const providerCount = await Provider.countDocuments();
+    if (providerCount === 0) {
+      await ensureBootstrapData();
+    }
     const services = ['Service 1', 'Service 2', 'Service 3'];
     const results = [];
 

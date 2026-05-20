@@ -23,7 +23,10 @@ export default function RequestService() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await res.json()
+        : { error: await res.text() };
       
       if (res.ok) {
         setMessage({ type: "success", text: "Lead submitted successfully! Assigned to: " + data.assignedProviders.map(p => p.name).join(", ") });
@@ -32,7 +35,8 @@ export default function RequestService() {
         setMessage({ type: "error", text: data.error || `Failed to submit lead (${res.status})` });
       }
     } catch (err) {
-      setMessage({ type: "error", text: err?.message || "Network error occurred." });
+      const detail = err instanceof Error ? err.message : "Unknown error";
+      setMessage({ type: "error", text: `Request failed: ${detail}` });
     }
     setLoading(false);
   };
